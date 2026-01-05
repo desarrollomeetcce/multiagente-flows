@@ -1,0 +1,7 @@
+2026-01-05 13:01:39: ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+2026-01-05 13:01:39:  We detected multiple lockfiles and selected the directory of C:\Users\Brau\Documents\SoutBug\package-lock.json as the root directory.
+2026-01-05 13:01:39:  To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+2026-01-05 13:01:39:    See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+2026-01-05 13:01:39:  Detected additional lockfiles: 
+2026-01-05 13:01:39:    * C:\Users\Brau\Documents\SoutBug\flow-orchestrator\pnpm-lock.yaml
+2026-01-05 13:01:39: 

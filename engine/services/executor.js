@@ -1,4 +1,5 @@
-const { sendMessageQueue } = require('../../src/queues/sendMessageQueue');
+const { sendMessageQueue } = require("./sendMessages");
+
 
 function log(...args) {
   console.log('[EXECUTOR]', ...args);

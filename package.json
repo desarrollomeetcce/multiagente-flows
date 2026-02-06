@@ -17,7 +17,7 @@
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.6",
     "@prisma/client": "5.10.2",
-    "bull": "^4.16.5",
+    "bull": "^4.12.2",
     "bullmq": "^5.67.2",
     "framer-motion": "^12.24.0",
     "ioredis": "^5.8.2",

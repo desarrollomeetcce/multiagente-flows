@@ -51,13 +51,13 @@ async function sendFile(action, event) {
     file: action.payload || action.file,
     caption: action.text || null,
   });
-
+  const fielObj = JSON.parse(action.payload)
   await sendMessageQueue(
     'MESSAGE_FILE' + event.session,
     {
       to: event.idChat,
       session: event.session,
-      fileID: action.payload || action.file,
+      fileID: fielObj.file.map(file => file.id),
       caption: action.text || null,
       type: action.type,
     }

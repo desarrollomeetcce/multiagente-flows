@@ -48,32 +48,52 @@ async function sendFile(action, event) {
     session: event.session,
     to: event.idChat,
     type: action.type,
-    file: action.payload || action.file,
+    payload: action.payload,
     caption: action.text || null,
   });
-  const fielObj = JSON.parse(action.payload)
+
+  if (!action.payload) {
+    throw new Error('Payload vacío en acción MEDIA');
+  }
+
+  // 1️⃣ Parsear payload
+  let payload = action.payload;
+  if (typeof payload === 'string') {
+    payload = JSON.parse(payload);
+  }
+
+  // 2️⃣ Validar estructura
+  if (!payload.file || !payload.file.id) {
+    throw new Error('Payload inválido: falta file.id');
+  }
+
+  // 3️⃣ Normalizar a array de IDs
+  const fileIDs = [payload.file.id];
+
+  // 4️⃣ Enviar a la queue
   await sendMessageQueue(
     'MESSAGE_FILE' + event.session,
     {
       to: event.idChat,
       session: event.session,
-      fileID: fielObj.file.map(file => file),
+      fileID: fileIDs, // 👈 ["22"]
       caption: action.text || null,
       type: action.type,
     }
   );
 
-  log('✅ Media enviada');
+  log('✅ Media enviada', { fileIDs });
 }
+
 
 /**
  * Agregar etiquetas
  */
 async function addTag(action, event) {
-  
+
   const jsonTags = JSON.parse(action.payload)
   const tags = jsonTags.tags
-  
+
 
   log('🏷️ Agregando TAGS', {
     session: event.session,

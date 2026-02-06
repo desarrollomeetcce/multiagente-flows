@@ -1,26 +1,42 @@
-const { findResponses } = require('../services/matcher');
-const { executeActions } = require('../services/executor');
-const { scheduleFollowUp } = require('../services/followUp');
+const { findResponses } = require("../services/matcher");
+const { executeActions } = require("../services/executor");
 
 module.exports = async (event) => {
+  const tagIds = Array.isArray(event.tagId)
+    ? event.tagId.map(Number)
+    : [];
+
+  console.log("[TAG_ASSIGNED]");
+  console.log("Session:", event.session);
+  console.log("Tag IDs:", tagIds);
+
+  // ⛔ no tiene sentido buscar sin tags
+  if (tagIds.length === 0) {
+    console.log("No tagIds, skipping");
+    return;
+  }
+
   const responses = await findResponses({
     session: event.session,
     activationWhere: {
-      
       tags: {
         some: {
-          tagId: event.tagId.map(t => Number(t)),
+          tagId: { in: tagIds },
         },
       },
     },
   });
 
+  console.log("Responses encontradas:", responses.length);
+
   for (const response of responses) {
-    if (response.type === 'AUTO_RESPONSE') {
+    console.log("→ Ejecutando response:", response.id, response.type);
+
+    if (response.type === "AUTO_RESPONSE") {
       await executeActions(response, event);
     }
 
-    if (response.type === 'FOLLOW_UP') {
+    if (response.type === "FOLLOW_UP") {
       await executeActions(response, event);
     }
   }

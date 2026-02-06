@@ -1,5 +1,15 @@
 const { sendMessageQueue } = require("./sendMessages");
 
+function parseSpintax(text) {
+  if (!text || typeof text !== 'string') return text;
+
+  return text.replace(/\{([^{}]+)\}/g, (_, content) => {
+    const options = content.split('|').map(o => o.trim());
+    const randomIndex = Math.floor(Math.random() * options.length);
+    return options[randomIndex];
+  });
+}
+
 
 function log(...args) {
   console.log('[EXECUTOR]', ...args);
@@ -34,7 +44,7 @@ async function sendText(action, event) {
     'SINGLE_MEESAGE' + event.session,
     {
       to: event.idChat,
-      message: action.text,
+      message: parseSpintax(action.text),
       session: event.session,
       clientID: event.contactId,
     }

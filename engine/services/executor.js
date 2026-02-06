@@ -89,7 +89,7 @@ async function addTag(action, event) {
       to: event.idChat,
       client: event.contactId,
       tagIDs: tags,
-      msg: 'add_tag_from_response',
+      action: 'add_tag_from_response',
       userGroupId: event.userGroupId || null,
     }
   );
@@ -119,7 +119,7 @@ async function removeTag(action, event) {
       to: event.idChat,
       client: event.contactId,
       tagIDs: tags,
-      msg: 'remove_tag_from_response',
+      action: 'remove_tag_from_response',
       userGroupId: event.userGroupId || null,
     }
   );

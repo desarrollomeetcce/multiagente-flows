@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Box,
@@ -22,11 +22,100 @@ import FooterActions from "../../components/FooterActions";
 import WhatsAppPreview from "../../components/WhatsAppPreview";
 
 import { Activation, Action, Rules, ResponseType } from "../../utils/types";
-import { normalizeResponseForDB } from "../../utils/normalizeResponse";
-import { createResponse } from "../../application/responses.repository";
+import { hydrateActionsFromDB, normalizeResponseForDB } from "../../utils/normalizeResponse";
+import { createResponse, updateResponse } from "../../application/responses.repository";
 import { SessionsService, UserSession } from "@/app/shared/services/sessions.service";
+import { Tag } from "@/app/shared/services/tags.service";
+import { getTagsAction } from "../../application/tags.actions";
+import { FileItem } from "@/app/shared/services/files.service";
+import { getbaseURL, getFilesAction } from "../../application/file.action";
+import { MediaFile } from "@/app/shared/types/file";
 
-export default function NewAutoResponsePage() {
+
+interface Props {
+  mode?: "create" | "edit";
+  initialData?: any;
+}
+
+
+
+export interface BackendFile {
+  id: number | string;
+  name: string;
+  path: string;
+}
+export type FileKind =
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "sticker"
+
+
+export function getFileTypeFromPath(path?: string): FileKind {
+  if (!path) return "image";
+
+  const ext = path.split(".").pop()?.toLowerCase();
+
+  if (!ext) return "image";
+
+  // 🖼 imágenes
+  if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
+    return "image";
+  }
+
+  // 🎥 video
+  if (["mp4", "mov", "avi", "mkv", "webm"].includes(ext)) {
+    return "video";
+  }
+
+  // 🎧 audio
+  if (["mp3", "wav", "ogg", "aac"].includes(ext)) {
+    return "audio";
+  }
+
+  // 📄 documentos
+  if (["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"].includes(ext)) {
+    return "document";
+  }
+
+  // 🧷 stickers (si los manejas así)
+  if (["webp"].includes(ext)) {
+    return "sticker";
+  }
+
+  return "image";
+}
+
+export function buildFileUrl(path: string) {
+  // ejemplo típico
+  return `/uploads/${encodeURIComponent(path)}`;
+
+  // o si es externo:
+  // return `https://cdn.tudominio.com/${path}`;
+}
+
+
+export function mapBackendFileToMediaFile(
+  file: BackendFile,
+  baseUrl: string
+): MediaFile {
+  const type = getFileTypeFromPath(file.path);
+
+  return {
+    id: String(file.id),
+    name: file.name,
+    url: `${baseUrl}/media/${file.path}`,
+    type,
+  };
+}
+
+
+export default function NewAutoResponsePage({
+  mode = "create",
+  initialData,
+}: Props) {
+
   // 🔥 detectar tipo
   const searchParams = useSearchParams();
   const type: ResponseType =
@@ -44,7 +133,14 @@ export default function NewAutoResponsePage() {
     ignoreIfOpen: false,
     ignoreIfArchived: false,
   });
-  const [responseId] = useState(() => crypto.randomUUID());
+  const isEdit = Boolean(initialData?.id);
+
+  const responseId = useMemo(() => {
+    return isEdit
+      ? initialData!.id
+      : crypto.randomUUID();
+  }, [isEdit, initialData]);
+
   function buildResponsePayload() {
     return {
       id: responseId,
@@ -60,8 +156,44 @@ export default function NewAutoResponsePage() {
 
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+  const sessionLoadedRef = useRef(false);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const tagsLoadedRef = useRef(false);
+
+  const filesLoadedRef = useRef(false);
+
+
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
 
   useEffect(() => {
+    if (filesLoadedRef.current) return;
+    filesLoadedRef.current = true;
+
+    (async () => {
+      const backendFiles = await getFilesAction();
+      const baseUrl = await getbaseURL();
+      const mapped = backendFiles
+        .map(file => mapBackendFileToMediaFile(file, baseUrl))
+
+      setMediaFiles(mapped);
+    })();
+  }, []);
+
+
+
+  useEffect(() => {
+    if (tagsLoadedRef.current) return;
+    tagsLoadedRef.current = true;
+
+    (async () => {
+      const data = await getTagsAction();
+      setTags(data);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (sessionLoadedRef.current) return;
+    sessionLoadedRef.current = true;
     SessionsService.getAll()
       .then(setSessions)
       .catch(err => {
@@ -69,25 +201,33 @@ export default function NewAutoResponsePage() {
       });
   }, []);
 
+  useEffect(() => {
+    if (mode === "edit" && initialData) {
+      setName(initialData.name);
+      setEnabled(initialData.enabled);
+      setActivations(initialData.activations);
+      setActions(hydrateActionsFromDB(initialData.actions));
+      setRules(initialData.rules);
+      setSelectedSessions(
+        initialData.sessions.map((s: any) => s.session)
+      );
+    }
+  }, [mode, initialData]);
 
   async function handleSave() {
-    if (!name.trim()) {
-      alert("El nombre es obligatorio");
-      return;
-    }
-
-    const payload = buildResponsePayload();
-    const normalized = normalizeResponseForDB(payload);
+    const payload = normalizeResponseForDB(buildResponsePayload());
 
     try {
-      await createResponse(normalized);
-      console.log("Response guardada");
-      // aquí luego puedes hacer router.push(...)
+      if (mode === "edit") {
+        await updateResponse(payload);
+      } else {
+        await createResponse(payload);
+      }
     } catch (err) {
-      console.error("Error guardando response", err);
-      alert("Ocurrió un error al guardar");
+      console.error(err);
     }
   }
+
 
 
   return (
@@ -187,12 +327,15 @@ export default function NewAutoResponsePage() {
                     setActivations={setActivations}
                     // 🔥 clave
                     responseType={type}
+                    tags={tags}
                   />
 
                   <ActionSection
                     disabled={!enabled}
                     actions={actions}
                     setActions={setActions}
+                    tags={tags}
+                    files={mediaFiles}
                   />
 
                   <RulesSection

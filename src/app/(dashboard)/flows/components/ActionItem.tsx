@@ -11,8 +11,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { Action } from "../utils/types";
 import TagMultiSelect from "@/app/shared/components/TagMultiSelect";
 import FilePicker from "@/app/shared/components/FilePicker";
-import { mockFiles } from "../utils/files.mock";
 import { Tag } from "@/app/shared/services/tags.service";
+import { MediaFile } from "@/app/shared/types/file";
+
+
 
 interface Props {
     action: Action;
@@ -20,7 +22,8 @@ interface Props {
     disabled?: boolean;
     onChange: (a: Action) => void;
     onDelete: () => void;
-    tags: Tag[]
+    tags: Tag[],
+    files: MediaFile[]
 }
 function mapType(type: string) {
     switch (type) {
@@ -60,8 +63,12 @@ export default function ActionItem({
     onChange,
     onDelete,
     disabled,
-    tags
+    tags,
+    files
 }: Props) {
+
+    
+
     return (
         <Paper variant="outlined" sx={{ p: 2 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -104,7 +111,7 @@ export default function ActionItem({
                     <Box mt={2}>
                         <FilePicker
                             label="Archivo"
-                            options={mockFiles.filter(f =>
+                            options={files.filter(f =>
                                 f.type === mapType(action.type)
                             )}
                             value={action.file ?? null}

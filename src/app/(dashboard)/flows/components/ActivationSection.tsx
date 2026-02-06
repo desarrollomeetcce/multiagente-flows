@@ -20,7 +20,6 @@ import {
 import AddActivationMenu from "./AddActivationMenu";
 import ActivationItem from "./ActivationItem";
 import { Tag } from "@/app/shared/services/tags.service";
-import { getTagsAction } from "../application/tags.actions";
 
 
 
@@ -29,6 +28,7 @@ interface Props {
   setActivations: (v: Activation[]) => void;
   responseType?: ResponseType; // 🔥 nuevo
   disabled?: boolean;
+    tags: Tag[]
 }
 
 export default function ActivationSection({
@@ -36,39 +36,15 @@ export default function ActivationSection({
   setActivations,
   responseType = "AUTO_RESPONSE",
   disabled,
+  tags
 }: Props) {
 
 
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loadingTags, setLoadingTags] = useState(false);
 
 
-  useEffect(() => {
-    let mounted = true;
 
-    async function loadTags() {
-      try {
-        setLoadingTags(true);
-
-        const data = await getTagsAction(); // 👈 DIRECTO
-
-        if (mounted) {
-          setTags(data);
-        }
-      } catch (e) {
-        console.error("Error cargando tags", e);
-      } finally {
-        setLoadingTags(false);
-      }
-    }
-
-    loadTags();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  
 
   const allowedActivationTypes: ActivationType[] =
     responseType === "FOLLOW_UP"

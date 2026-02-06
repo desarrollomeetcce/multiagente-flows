@@ -24,11 +24,15 @@ import {
 import { Action, ActionType } from "../utils/types";
 import AddActionMenu from "./AddActionMenu";
 import SortableActionItem from "./SortableActionItem";
+import { Tag } from "@/app/shared/services/tags.service";
+import { MediaFile } from "@/app/shared/types/file";
 
 interface Props {
     actions?: Action[];   // 👈 opcional
     setActions?: (v: Action[]) => void;
     disabled?: boolean;
+    tags: Tag[]
+    files: MediaFile[]
 }
 
 
@@ -36,6 +40,8 @@ export default function ActionSection({
     actions = [],          // 👈 fallback seguro
     setActions = () => { }, // 👈 no-op,
     disabled,
+    tags,
+    files
 }: Props) {
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -107,6 +113,8 @@ export default function ActionSection({
                                         disabled={disabled}
                                         onChange={data => updateAction(a.id, data)}
                                         onDelete={() => removeAction(a.id)}
+                                        tags={tags}
+                                        files={files}
                                     />
                                 ))}
                             </Stack>

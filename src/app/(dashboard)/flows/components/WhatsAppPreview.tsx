@@ -5,8 +5,13 @@ import {
   Paper,
   Typography,
   Chip,
+  CircularProgress,
 } from "@mui/material";
+import { useEffect, useState } from "react";
 import { Action } from "../utils/types";
+
+// 🔥 cache global por URL
+const loadedMediaCache = new Set<string>();
 
 interface Props {
   actions: Action[];
@@ -14,12 +19,7 @@ interface Props {
 
 export default function WhatsAppPreview({ actions }: Props) {
   return (
-    <Box
-      sx={{
-        position: "sticky",
-        top: 24,
-      }}
-    >
+    <Box sx={{ position: "sticky", top: 24 }}>
       <Paper
         elevation={3}
         sx={{
@@ -32,13 +32,7 @@ export default function WhatsAppPreview({ actions }: Props) {
         }}
       >
         {/* Header */}
-        <Box
-          sx={{
-            p: 1.5,
-            backgroundColor: "#075E54",
-            color: "#fff",
-          }}
-        >
+        <Box sx={{ p: 1.5, backgroundColor: "#075E54", color: "#fff" }}>
           <Typography fontWeight={600} fontSize={14}>
             WhatsApp
           </Typography>
@@ -75,6 +69,8 @@ export default function WhatsAppPreview({ actions }: Props) {
   );
 }
 
+/* ================= ACTION ROUTER ================= */
+
 function PreviewAction({ action }: { action: Action }) {
   switch (action.type) {
     case "send_text":
@@ -109,6 +105,7 @@ function PreviewAction({ action }: { action: Action }) {
   }
 }
 
+/* ================= BASE BUBBLE ================= */
 
 function Bubble({ children }: { children: React.ReactNode }) {
   return (
@@ -129,11 +126,15 @@ function Bubble({ children }: { children: React.ReactNode }) {
     </Box>
   );
 }
+
+/* ================= TEXT ================= */
+
 function TextBubble({ text }: { text?: string }) {
   if (!text) return null;
   return <Bubble>{text}</Bubble>;
 }
 
+/* ================= IMAGE ================= */
 
 function ImageBubble({
   file,
@@ -142,64 +143,207 @@ function ImageBubble({
   file?: any;
   caption?: string;
 }) {
+  const alreadyLoaded = file?.url && loadedMediaCache.has(file.url);
+  const [loading, setLoading] = useState(!alreadyLoaded);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!file?.url) return;
+
+    setError(false);
+    setLoading(!loadedMediaCache.has(file.url));
+  }, [file?.url]);
+
   if (!file) return null;
 
   return (
     <Bubble>
-      <img
-        src={file.url}
-        alt={file.name}
-        style={{
-          width: "100%",
-          borderRadius: 6,
-          marginBottom: caption ? 6 : 0,
+      <Box
+        sx={{
+          position: "relative",
+          minHeight: 120,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
-      />
+      >
+        {loading && !error && <CircularProgress size={22} />}
+
+        {!error && (
+          <img
+            src={file.url}
+            alt={file.name}
+            onLoad={() => {
+              loadedMediaCache.add(file.url);
+              setLoading(false);
+            }}
+            onError={() => {
+              setLoading(false);
+              setError(true);
+            }}
+            style={{
+              display: loading ? "none" : "block",
+              width: "100%",
+              borderRadius: 6,
+              marginBottom: caption ? 6 : 0,
+            }}
+          />
+        )}
+
+        {error && (
+          <Typography fontSize={12} color="error">
+            No se pudo cargar la imagen
+          </Typography>
+        )}
+      </Box>
+
       {caption && <div>{caption}</div>}
     </Bubble>
   );
 }
 
+/* ================= VIDEO ================= */
 
 function VideoBubble({ file }: { file?: any }) {
+  const alreadyLoaded = file?.url && loadedMediaCache.has(file.url);
+  const [loading, setLoading] = useState(!alreadyLoaded);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!file?.url) return;
+
+    setError(false);
+    setLoading(!loadedMediaCache.has(file.url));
+  }, [file?.url]);
+
   if (!file) return null;
 
   return (
     <Bubble>
-      <video
-        src={file.url}
-        controls
-        style={{ width: "100%", borderRadius: 6 }}
-      />
+      <Box
+        sx={{
+          position: "relative",
+          minHeight: 120,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {loading && !error && <CircularProgress size={22} />}
+
+        {!error && (
+          <video
+            src={file.url}
+            controls
+            preload="metadata"
+            onLoadedData={() => {
+              loadedMediaCache.add(file.url);
+              setLoading(false);
+            }}
+            onError={() => {
+              setLoading(false);
+              setError(true);
+            }}
+            style={{
+              display: loading ? "none" : "block",
+              width: "100%",
+              borderRadius: 6,
+            }}
+          />
+        )}
+
+        {error && (
+          <Typography fontSize={12} color="error">
+            No se pudo cargar el video
+          </Typography>
+        )}
+      </Box>
     </Bubble>
   );
 }
+
+/* ================= AUDIO ================= */
 
 function AudioBubble({ file }: { file?: any }) {
+  const alreadyLoaded = file?.url && loadedMediaCache.has(file.url);
+  const [loading, setLoading] = useState(!alreadyLoaded);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!file?.url) return;
+
+    setError(false);
+    setLoading(!loadedMediaCache.has(file.url));
+  }, [file?.url]);
+
   if (!file) return null;
 
   return (
     <Bubble>
-      <audio src={file.url} controls style={{ width: "100%" }} />
+      <Box
+        sx={{
+          position: "relative",
+          minHeight: 48,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {loading && !error && <CircularProgress size={20} />}
+
+        {!error && (
+          <audio
+            src={file.url}
+            controls
+            preload="metadata"
+            onLoadedData={() => {
+              loadedMediaCache.add(file.url);
+              setLoading(false);
+            }}
+            onError={() => {
+              setLoading(false);
+              setError(true);
+            }}
+            style={{
+              display: loading ? "none" : "block",
+              width: "100%",
+            }}
+          />
+        )}
+
+        {error && (
+          <Typography fontSize={12} color="error">
+            No se pudo cargar el audio
+          </Typography>
+        )}
+      </Box>
     </Bubble>
   );
 }
 
+/* ================= DOCUMENT ================= */
 
 function DocumentBubble({ file }: { file?: any }) {
   if (!file) return null;
 
   return (
     <Bubble>
-      <Typography fontSize={12}>
-        📄 {file.name}
-      </Typography>
+      <Typography fontSize={12}>📄 {file.name}</Typography>
     </Bubble>
   );
 }
 
+/* ================= STICKER ================= */
 
 function StickerBubble({ file }: { file?: any }) {
+  const alreadyLoaded = file?.url && loadedMediaCache.has(file.url);
+  const [loading, setLoading] = useState(!alreadyLoaded);
+
+  useEffect(() => {
+    if (!file?.url) return;
+    setLoading(!loadedMediaCache.has(file.url));
+  }, [file?.url]);
+
   if (!file) return null;
 
   return (
@@ -207,17 +351,31 @@ function StickerBubble({ file }: { file?: any }) {
       sx={{
         ml: "auto",
         mb: 1.5,
+        width: 120,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
+      {loading && <CircularProgress size={22} />}
+
       <img
         src={file.url}
         alt={file.name}
-        style={{ width: 120 }}
+        onLoad={() => {
+          loadedMediaCache.add(file.url);
+          setLoading(false);
+        }}
+        style={{
+          display: loading ? "none" : "block",
+          width: 120,
+        }}
       />
     </Box>
   );
 }
 
+/* ================= OTHERS ================= */
 
 function DelayBubble({ seconds }: { seconds?: number }) {
   if (!seconds) return null;

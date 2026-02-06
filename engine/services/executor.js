@@ -57,7 +57,7 @@ async function sendFile(action, event) {
     {
       to: event.idChat,
       session: event.session,
-      fileID: fielObj.file.map(file => file.id),
+      fileID: fielObj.file.map(file => file),
       caption: action.text || null,
       type: action.type,
     }

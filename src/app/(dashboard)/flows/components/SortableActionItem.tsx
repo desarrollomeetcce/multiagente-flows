@@ -6,6 +6,9 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, IconButton } from "@mui/material";
 import ActionItem from "./ActionItem";
 import { Action } from "../utils/types";
+import { useEffect, useState } from "react";
+import { Tag } from "@/app/shared/services/tags.service";
+import { getTagsAction } from "../application/tags.actions";
 
 interface Props {
   action: Action;
@@ -33,7 +36,35 @@ export default function SortableActionItem(props: Props) {
     transition,
     opacity: isDragging ? 0.6 : 1,
   };
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
 
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadTags() {
+      try {
+        setLoadingTags(true);
+
+        const data = await getTagsAction(); // 👈 DIRECTO
+
+        if (mounted) {
+          setTags(data);
+        }
+      } catch (e) {
+        console.error("Error cargando tags", e);
+      } finally {
+        setLoadingTags(false);
+      }
+    }
+
+    loadTags();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
   return (
     <Box ref={setNodeRef} style={style}>
       <Box display="flex" alignItems="flex-start" gap={1}>
@@ -50,7 +81,7 @@ export default function SortableActionItem(props: Props) {
 
         {/* Acción */}
         <Box flex={1}>
-          <ActionItem {...props} />
+          <ActionItem {...props} tags={tags}/>
         </Box>
       </Box>
     </Box>

@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Activation,
@@ -19,6 +19,10 @@ import {
 
 import AddActivationMenu from "./AddActivationMenu";
 import ActivationItem from "./ActivationItem";
+import { Tag } from "@/app/shared/services/tags.service";
+import { getTagsAction } from "../application/tags.actions";
+
+
 
 interface Props {
   activations: Activation[];
@@ -33,18 +37,49 @@ export default function ActivationSection({
   responseType = "AUTO_RESPONSE",
   disabled,
 }: Props) {
+
+
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadTags() {
+      try {
+        setLoadingTags(true);
+
+        const data = await getTagsAction(); // 👈 DIRECTO
+
+        if (mounted) {
+          setTags(data);
+        }
+      } catch (e) {
+        console.error("Error cargando tags", e);
+      } finally {
+        setLoadingTags(false);
+      }
+    }
+
+    loadTags();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const allowedActivationTypes: ActivationType[] =
     responseType === "FOLLOW_UP"
       ? ["tag_applied"]
       : [
-          "message_received",
-          "keyword",
-          "first_message",
-          "first_message_day",
-          "tag_applied",
-        ];
+        "message_received",
+        "keyword",
+        "first_message",
+        "first_message_day",
+        "tag_applied",
+      ];
 
   const addActivation = (type: ActivationType) => {
     if (!allowedActivationTypes.includes(type)) return;
@@ -85,6 +120,7 @@ export default function ActivationSection({
               disabled={disabled}
               onChange={data => updateActivation(a.id, data)}
               onDelete={() => removeActivation(a.id)}
+              tags={tags}
             />
           ))}
 

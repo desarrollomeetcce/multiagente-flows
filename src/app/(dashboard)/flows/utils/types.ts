@@ -94,3 +94,22 @@ export interface Action {
   /* ---------- TAG ACTIONS ---------- */
   tags?: TagOption[];
 }
+
+
+export interface ResponseDefinition {
+  id: string;
+  name: string;
+  type: ResponseType;
+  enabled: boolean;
+   sessions: string[]; 
+  activations: Activation[];
+  actions: Action[];
+  rules: Rules;
+
+  createdAt?: string;
+}
+
+export type FollowUpStatus =
+  | "PENDING"
+  | "EXECUTED"
+  | "CANCELLED";

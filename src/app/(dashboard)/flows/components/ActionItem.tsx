@@ -10,9 +10,9 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Action } from "../utils/types";
 import TagMultiSelect from "@/app/shared/components/TagMultiSelect";
-import { mockTags } from "../utils/tags.mock";
 import FilePicker from "@/app/shared/components/FilePicker";
 import { mockFiles } from "../utils/files.mock";
+import { Tag } from "@/app/shared/services/tags.service";
 
 interface Props {
     action: Action;
@@ -20,6 +20,7 @@ interface Props {
     disabled?: boolean;
     onChange: (a: Action) => void;
     onDelete: () => void;
+    tags: Tag[]
 }
 function mapType(type: string) {
     switch (type) {
@@ -59,6 +60,7 @@ export default function ActionItem({
     onChange,
     onDelete,
     disabled,
+    tags
 }: Props) {
     return (
         <Paper variant="outlined" sx={{ p: 2 }}>
@@ -167,13 +169,18 @@ export default function ActionItem({
 
             {(action.type === "add_tag" || action.type === "remove_tag") && (
                 <Box mt={2}>
+
                     <TagMultiSelect
                         label={
                             action.type === "add_tag"
                                 ? "Etiquetas a agregar"
                                 : "Etiquetas a remover"
                         }
-                        options={mockTags}
+                        options={tags.map(t => ({
+                            id: String(t.id), // 👈 FIX
+                            name: t.name,
+                            color: t.color,
+                        }))}
                         value={action.tags ?? []}
                         onChange={(tags) =>
                             onChange({ ...action, tags })

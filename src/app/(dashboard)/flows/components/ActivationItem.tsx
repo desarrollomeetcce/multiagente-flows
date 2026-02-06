@@ -15,13 +15,14 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 import { Activation } from "../utils/types";
 import TagMultiSelect from "@/app/shared/components/TagMultiSelect";
-import { mockTags } from "../utils/tags.mock";
+import { Tag } from "@/app/shared/services/tags.service";
 
 interface Props {
   activation: Activation;
   onChange: (a: Activation) => void;
   onDelete: () => void;
   disabled?: boolean;
+  tags: Tag[]
 }
 
 export default function ActivationItem({
@@ -29,6 +30,7 @@ export default function ActivationItem({
   onChange,
   onDelete,
   disabled,
+  tags
 }: Props) {
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
@@ -107,13 +109,19 @@ export default function ActivationItem({
           </Typography>
 
           <TagMultiSelect
-            options={mockTags}
+            options={tags.map(t => ({
+              id: String(t.id), // 👈 FIX
+              name: t.name,
+              color: t.color,
+            }))}
             value={activation.tagOptions ?? []}
             onChange={tagOptions =>
               onChange({ ...activation, tagOptions })
             }
             disabled={disabled}
           />
+
+
 
           {/* ===== DELAY (SOLO SI APLICA) ===== */}
           {activation.delayFrom === "AFTER_DELAY" && (
@@ -217,8 +225,8 @@ function buildHelperText(a: Activation) {
     d.days > 0
       ? `${d.days} día(s)`
       : d.hours > 0
-      ? `${d.hours} hora(s)`
-      : `${d.minutes} minuto(s)`;
+        ? `${d.hours} hora(s)`
+        : `${d.minutes} minuto(s)`;
 
   switch (a.delayFrom) {
     case "ON_TAG_APPLIED":

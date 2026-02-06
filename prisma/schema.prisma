@@ -1,0 +1,93 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Response {
+  id        String   @id
+  name      String
+  type      String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  sessions    ResponseSession[]
+  activations ResponseActivation[]
+  actions     ResponseAction[]
+  rules       ResponseRules?
+  followUps   FollowUpJob[]
+}
+
+model ResponseActivation {
+  id         String @id
+  responseId String
+  type       String
+
+  keyword String?
+
+  delayFrom    String?
+  delayDays    Int?
+  delayHours   Int?
+  delayMinutes Int?
+
+  response Response        @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  tags     ActivationTag[]
+}
+
+model ActivationTag {
+  activationId String
+  tagId        Int
+
+  activation ResponseActivation @relation(fields: [activationId], references: [id], onDelete: Cascade)
+
+  @@id([activationId, tagId])
+}
+
+model ResponseAction {
+  id         String @id
+  responseId String
+  type       String
+
+  delaySeconds Int?
+  text         String?
+  payload      String?
+  position     Int
+
+  response Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+}
+
+model ResponseRules {
+  responseId       String  @id
+  noGroups         Boolean
+  onlySchedule     Boolean
+  ignoreIfOpen     Boolean
+  ignoreIfArchived Boolean
+
+  response Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+}
+
+model FollowUpJob {
+  id         String @id
+  responseId String
+  contactId  String
+
+  scheduledAt DateTime
+  executedAt  DateTime?
+  cancelledAt DateTime?
+
+  status String
+
+  response Response @relation(fields: [responseId], references: [id])
+}
+
+model ResponseSession {
+  responseId String
+  session    String
+
+  response Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  @@id([responseId, session])
+}

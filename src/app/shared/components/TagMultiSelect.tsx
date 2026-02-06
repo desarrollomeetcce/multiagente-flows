@@ -26,8 +26,11 @@ export default function TagMultiSelect({
     <Autocomplete
       multiple
       options={options}
-      getOptionLabel={(option) => option.name}
       value={value}
+      getOptionLabel={(option) => option.name}
+      isOptionEqualToValue={(option, value) =>
+        option.id === value.id
+      }
       onChange={(_, newValue) => onChange(newValue)}
       disableCloseOnSelect
       disabled={disabled}
@@ -50,5 +53,6 @@ export default function TagMultiSelect({
         />
       )}
     />
+
   );
 }

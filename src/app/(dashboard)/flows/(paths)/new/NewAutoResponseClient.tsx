@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Box,
@@ -8,6 +9,9 @@ import {
   Paper,
   Stack,
   Divider,
+  Autocomplete,
+  Chip,
+  TextField,
 } from "@mui/material";
 
 import AutoResponseHeader from "../../components/AutoResponseHeader";
@@ -18,6 +22,9 @@ import FooterActions from "../../components/FooterActions";
 import WhatsAppPreview from "../../components/WhatsAppPreview";
 
 import { Activation, Action, Rules, ResponseType } from "../../utils/types";
+import { normalizeResponseForDB } from "../../utils/normalizeResponse";
+import { createResponse } from "../../application/responses.repository";
+import { SessionsService, UserSession } from "@/app/shared/services/sessions.service";
 
 export default function NewAutoResponsePage() {
   // 🔥 detectar tipo
@@ -37,6 +44,51 @@ export default function NewAutoResponsePage() {
     ignoreIfOpen: false,
     ignoreIfArchived: false,
   });
+  const [responseId] = useState(() => crypto.randomUUID());
+  function buildResponsePayload() {
+    return {
+      id: responseId,
+      name,
+      type,
+      enabled,
+      sessions: selectedSessions, // 👈 NUEVO
+      activations,
+      actions,
+      rules,
+    };
+  }
+
+  const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+
+  useEffect(() => {
+    SessionsService.getAll()
+      .then(setSessions)
+      .catch(err => {
+        console.error("Error cargando sesiones", err);
+      });
+  }, []);
+
+
+  async function handleSave() {
+    if (!name.trim()) {
+      alert("El nombre es obligatorio");
+      return;
+    }
+
+    const payload = buildResponsePayload();
+    const normalized = normalizeResponseForDB(payload);
+
+    try {
+      await createResponse(normalized);
+      console.log("Response guardada");
+      // aquí luego puedes hacer router.push(...)
+    } catch (err) {
+      console.error("Error guardando response", err);
+      alert("Ocurrió un error al guardar");
+    }
+  }
+
 
   return (
     <Container>
@@ -95,7 +147,40 @@ export default function NewAutoResponsePage() {
                   />
 
                   <Divider />
-
+                  <Box
+                    display="flex"
+                    flexDirection="column"
+                    gap={2}
+                    mb={3}
+                    padding={2}
+                  >
+                    <Autocomplete
+                      multiple
+                      options={sessions}
+                      getOptionLabel={(s) => s.name}
+                      value={sessions.filter(s => selectedSessions.includes(s.sessionAuth))}
+                      onChange={(_, value) => {
+                        setSelectedSessions(value.map(v => v.sessionAuth));
+                      }}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => (
+                          <Chip
+                            label={option.name}
+                            {...getTagProps({ index })}
+                            key={option.sessionAuth}
+                            sx={{ backgroundColor: option.color || undefined }}
+                          />
+                        ))
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Sesiones"
+                          placeholder="Selecciona sesiones"
+                        />
+                      )}
+                    />
+                  </Box>
                   <ActivationSection
                     disabled={!enabled}
                     activations={activations}
@@ -138,7 +223,7 @@ export default function NewAutoResponsePage() {
               borderRadius: 2,
             }}
           >
-            <FooterActions disabled={!enabled} />
+            <FooterActions onSave={handleSave} disabled={!enabled} />
           </Box>
         </Paper>
       </Box>

@@ -131,9 +131,9 @@ async function addTag(action, event) {
  * Remover etiquetas
  */
 async function removeTag(action, event) {
-  const tags = Array.isArray(action.payload?.tags)
-    ? action.payload.tags
-    : [action.payload?.tags];
+  const jsonTags = JSON.parse(action.payload)
+  const tags = jsonTags.tags
+
 
   log('🏷️ Removiendo TAGS', {
     session: event.session,

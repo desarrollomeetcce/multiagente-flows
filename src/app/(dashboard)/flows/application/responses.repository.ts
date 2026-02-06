@@ -145,7 +145,7 @@ export async function updateResponse(response: ResponseDefinition) {
       where: { id: response.id },
       data: {
         name: response.name,
-        type: response.type,
+        
         enabled: response.enabled,
 
         // ===== SESSIONS =====

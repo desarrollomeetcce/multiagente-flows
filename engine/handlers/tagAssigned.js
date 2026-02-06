@@ -9,7 +9,7 @@ module.exports = async (event) => {
       
       tags: {
         some: {
-          tagId: event.tagId,
+          tagId: event.tagId.map(t => Number(t)),
         },
       },
     },

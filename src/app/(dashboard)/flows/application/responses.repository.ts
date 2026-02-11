@@ -139,7 +139,7 @@ export async function updateResponse(response: ResponseDefinition) {
       },
     });
     
-
+    
     // ✅ Update principal con nested writes
     await tx.response.update({
       where: { id: response.id },
@@ -163,7 +163,7 @@ export async function updateResponse(response: ResponseDefinition) {
             id: a.id,
             type: a.type,
             keyword: a.keyword,
-            delayFrom: a.delayFrom,
+            delayFrom: a.delayFrom || 'ON_TAG_APPLIED',
             delayDays: a.delay?.days,
             delayHours: a.delay?.hours,
             delayMinutes: a.delay?.minutes,

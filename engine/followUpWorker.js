@@ -23,3 +23,40 @@ queue.process(async (job) => {
     },
   });
 });
+
+const responseExecutionQueue = new Queue('RESPONSE_EXECUTION_QUEUE');
+
+responseExecutionQueue.process(async (job) => {
+  const { responseId, event } = job.data;
+
+  console.log('[RESPONSE_EXECUTION_QUEUE] Job recibido', {
+    jobId: job.id,
+    responseId,
+    session: event?.session,
+  });
+
+  const response = await prisma.response.findUnique({
+    where: { id: responseId },
+    include: {
+      activations: { include: { tags: true } },
+      actions: { orderBy: { position: 'asc' } },
+      rules: true,
+    },
+  });
+
+  if (!response) {
+    console.warn(
+      '[RESPONSE_EXECUTION_QUEUE] Response no encontrada',
+      responseId
+    );
+    return;
+  }
+
+  // 🎯 LO ÚNICO QUE DEBE HACER ESTA QUEUE
+  await executeActions(response, event);
+
+  console.log(
+    '[RESPONSE_EXECUTION_QUEUE] Job ejecutado correctamente',
+    job.id
+  );
+});

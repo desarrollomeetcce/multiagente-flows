@@ -10,12 +10,14 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
+  Checkbox,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import { Activation } from "../utils/types";
 import TagMultiSelect from "@/app/shared/components/TagMultiSelect";
 import { Tag } from "@/app/shared/services/tags.service";
+import { useEffect, useRef } from "react";
 
 interface Props {
   activation: Activation;
@@ -25,6 +27,64 @@ interface Props {
   tags: Tag[]
 }
 
+function needsNormalization(activation: Activation) {
+  return (
+    !activation.delay &&
+    !activation.tagOptions &&
+    (
+      (activation as any).delayDays != null ||
+      (activation as any).delayHours != null ||
+      (activation as any).delayMinutes != null ||
+      Array.isArray((activation as any).tags)
+    )
+  );
+}
+
+
+function normalizeActivationIfNeeded(activation: Activation, tags: any[]): Activation {
+  // 👇 ya viene normalizado
+  if (activation.delay || activation.tagOptions) {
+    return activation;
+  }
+
+  // 👇 viene plano desde BD
+  const hasDelay =
+    (activation as any).delayDays ||
+    (activation as any).delayHours ||
+    (activation as any).delayMinutes;
+
+  return {
+    ...activation,
+
+    delayFrom: activation.delayFrom ?? "ON_TAG_APPLIED",
+
+    delay: hasDelay
+      ? {
+        days: (activation as any).delayDays ?? 0,
+        hours: (activation as any).delayHours ?? 0,
+        minutes: (activation as any).delayMinutes ?? 0,
+      }
+      : undefined,
+
+    tagOptions: Array.isArray((activation as any).tags)
+      ? (activation as any).tags
+        .map((t: any) => {
+          const fullTag = tags.find(tag => tag.id === t.tagId);
+          if (!fullTag) return null;
+
+          return {
+            id: String(fullTag.id),
+            name: fullTag.name,
+            color: fullTag.color,
+          };
+        })
+        .filter(Boolean)
+      : activation.tagOptions,
+
+  };
+}
+
+
 export default function ActivationItem({
   activation,
   onChange,
@@ -32,6 +92,27 @@ export default function ActivationItem({
   disabled,
   tags
 }: Props) {
+  const normalizedOnceRef = useRef(false);
+
+  useEffect(() => {
+    // ⛔ ya normalizado
+    if (normalizedOnceRef.current) return;
+
+    // ⛔ tags aún no cargan
+    if (!tags || tags.length === 0) return;
+
+    // ⛔ no necesita normalización
+    if (!needsNormalization(activation)) return;
+
+    const normalized = normalizeActivationIfNeeded(activation, tags);
+
+    onChange(normalized);
+    normalizedOnceRef.current = true;
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tags]);
+
+  
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       {/* ================= HEADER ================= */}
@@ -73,7 +154,7 @@ export default function ActivationItem({
 
           {/* ===== ENTER / EXIT / DELAY ===== */}
           <RadioGroup
-            value={activation.delayFrom ?? "AFTER_DELAY"}
+            value={activation.delayFrom ?? "ON_TAG_APPLIED"}
             onChange={e =>
               onChange({
                 ...activation,
@@ -95,14 +176,26 @@ export default function ActivationItem({
               disabled={disabled}
             />
 
-            <FormControlLabel
-              value="AFTER_DELAY"
-              control={<Radio />}
-              label="Activar después de un tiempo definido"
-              disabled={disabled}
-            />
-          </RadioGroup>
 
+
+          </RadioGroup>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!!activation.delay}
+                onChange={e =>
+                  onChange({
+                    ...activation,
+                    delay: e.target.checked
+                      ? activation.delay ?? { days: 0, hours: 0, minutes: 0 }
+                      : undefined,
+                  })
+                }
+                disabled={disabled}
+              />
+            }
+            label="Aplicar tiempo de espera antes de enviar el mensaje"
+          />
           {/* ===== TAGS ===== */}
           <Typography variant="body2" color="text.secondary">
             Etiquetas
@@ -124,7 +217,7 @@ export default function ActivationItem({
 
 
           {/* ===== DELAY (SOLO SI APLICA) ===== */}
-          {activation.delayFrom === "AFTER_DELAY" && (
+          {!!activation.delay && (
             <>
               <Typography variant="body2" color="text.secondary">
                 Tiempo de espera antes de enviar el mensaje

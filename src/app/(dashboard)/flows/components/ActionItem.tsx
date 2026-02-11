@@ -9,10 +9,11 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Action } from "../utils/types";
-import TagMultiSelect from "@/app/shared/components/TagMultiSelect";
+import TagMultiSelect, { TagOption } from "@/app/shared/components/TagMultiSelect";
 import FilePicker from "@/app/shared/components/FilePicker";
 import { Tag } from "@/app/shared/services/tags.service";
 import { MediaFile } from "@/app/shared/types/file";
+import { useEffect, useRef } from "react";
 
 
 
@@ -57,6 +58,8 @@ function acceptByType(type: string) {
     }
 }
 
+
+
 export default function ActionItem({
     action,
     index,
@@ -66,8 +69,6 @@ export default function ActionItem({
     tags,
     files
 }: Props) {
-
-    
 
     return (
         <Paper variant="outlined" sx={{ p: 2 }}>
@@ -188,7 +189,18 @@ export default function ActionItem({
                             name: t.name,
                             color: t.color,
                         }))}
-                        value={action.tags ?? []}
+                        value={
+                            (action.tags ?? []).map(t => {
+                                const fullTag = tags.find(tag => String(tag.id) === String(t.id));
+                                return fullTag
+                                    ? {
+                                        id: String(fullTag.id),
+                                        name: fullTag.name,
+                                        color: fullTag.color,
+                                    }
+                                    : null;
+                            }).filter(Boolean) as any
+                        }
                         onChange={(tags) =>
                             onChange({ ...action, tags })
                         }

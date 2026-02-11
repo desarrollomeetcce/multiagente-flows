@@ -15,6 +15,9 @@ import {
 import UploadIcon from "@mui/icons-material/Upload";
 import { useEffect, useMemo, useState } from "react";
 import { MediaFile } from "../types/file";
+import { buildFileUrl } from "@/app/(dashboard)/flows/(paths)/new/NewAutoResponseClient";
+import { FilesService } from "../services/files.service";
+import { getbaseURL } from "@/app/(dashboard)/flows/application/file.action";
 
 const CHUNK_SIZE = 30;
 
@@ -43,6 +46,8 @@ export default function FilePicker({
   const [visibleCount, setVisibleCount] = useState(CHUNK_SIZE);
 
   const open = Boolean(anchorEl);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   /* ================== FILTER ================== */
   const filteredOptions = useMemo(() => {
@@ -83,10 +88,11 @@ export default function FilePicker({
             type="file"
             hidden
             accept={accept}
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
 
+              // 1️⃣ Archivo temporal (preview inmediato)
               const tempFile: MediaFile = {
                 id: crypto.randomUUID(),
                 name: file.name,
@@ -96,8 +102,42 @@ export default function FilePicker({
               };
 
               onUpload(tempFile);
+              onSelect(tempFile);
+
+              try {
+                setUploading(true);
+                setUploadProgress(0);
+
+                // 🔥 USANDO TU SERVICE
+                const uploaded = await FilesService.uploadSingleFile(
+                  file,
+                  (percent) => setUploadProgress(percent)
+                );
+
+                if (!uploaded) throw new Error("Upload fallido");
+                const baseUrl = await getbaseURL();
+                // 2️⃣ MediaFile definitivo
+                const realFile: MediaFile = {
+                  id: String(uploaded.id),
+                  name: uploaded.name,
+                  url: baseUrl+'/media/'+uploaded.path,
+                  type: detectType(file.type),
+                  isTemp: false,
+                };
+
+                onUpload(realFile);
+                onSelect(realFile);
+              } catch (err) {
+                console.error("Error subiendo archivo:", err);
+              } finally {
+                setUploading(false);
+                setUploadProgress(0);
+              }
             }}
           />
+
+
+
         </Button>
 
         {/* OPEN MENU */}
@@ -113,6 +153,21 @@ export default function FilePicker({
         >
           {value ? value.name : "Seleccionar archivo existente"}
         </Button>
+        {uploading && (
+          <Stack spacing={0.5}>
+            <Typography fontSize={12} color="text.secondary">
+              Subiendo archivo… {uploadProgress}%
+            </Typography>
+            <Box sx={{ width: "100%" }}>
+              <CircularProgress
+                variant="determinate"
+                value={uploadProgress}
+                size={28}
+              />
+            </Box>
+          </Stack>
+        )}
+
       </Stack>
 
       {/* ===== POPOVER ===== */}

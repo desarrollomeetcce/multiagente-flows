@@ -146,7 +146,7 @@ async function removeTag(action, event) {
     'TAG_MASSIVE_MESSAGE',
     {
       session: event.session,
-      to: '',
+      to:  event.idChat,
       client: event.contactId,
       tagIDs: tags,
       action: 'remove_tag_from_response',
